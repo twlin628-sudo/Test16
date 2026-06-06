@@ -3,85 +3,47 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>音準診斷工具</title>
+<title>音準診斷工具 v3</title>
 <style>
   body { background:#111; color:#eee; font-family:monospace; padding:12px; font-size:14px; }
   h2 { color:#7c6aff; margin-bottom:10px; }
-
-  /* 狀態燈 */
   #status-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
   .light { padding:5px 10px; border-radius:20px; font-size:12px; background:#222; color:#555; border:1px solid #333; }
   .light.on  { background:#1a3a1a; color:#39ffa0; border-color:#39ffa0; }
   .light.err { background:#3a1a1a; color:#ff4455; border-color:#ff4455; }
-
-  /* 按鈕 */
-  .btn {
-    display:block; width:100%; padding:13px;
-    border:none; border-radius:8px;
-    font-size:15px; font-weight:bold; cursor:pointer;
-    margin-bottom:8px; color:#fff;
-  }
+  .btn { display:block; width:100%; padding:13px; border:none; border-radius:8px; font-size:15px; font-weight:bold; cursor:pointer; margin-bottom:8px; color:#fff; }
   .btn-mic  { background:#7c6aff; }
   .btn-stop { background:#e02255; }
   .btn-sm   { font-size:13px; padding:9px; background:#333; }
-
-  /* 參照音區 */
-  #ref-box {
-    background:#1c1c2e; border-radius:8px; padding:10px;
-    border:1px solid #333; margin-bottom:10px;
-  }
+  #ref-box { background:#1c1c2e; border-radius:8px; padding:10px; border:1px solid #333; margin-bottom:10px; }
   #ref-box h3 { font-size:13px; color:#aaa; margin-bottom:8px; }
-  #ref-notes {
-    display:grid; grid-template-columns:repeat(4,1fr); gap:6px;
-  }
-  .note-btn {
-    padding:10px 4px; border:1px solid #333; border-radius:6px;
-    background:#111; color:#ccc; font-family:monospace;
-    font-size:13px; font-weight:bold; cursor:pointer; text-align:center;
-    transition:background .1s;
-  }
+  #ref-notes { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .note-btn { padding:10px 4px; border:1px solid #333; border-radius:6px; background:#111; color:#ccc; font-family:monospace; font-size:13px; font-weight:bold; cursor:pointer; text-align:center; }
   .note-btn:active { background:#3a3560; }
   .note-btn.playing { background:#7c6aff; color:#fff; border-color:#7c6aff; }
   .note-btn small { display:block; font-size:10px; color:#777; font-weight:normal; margin-top:1px; }
-
-  /* 儀表 */
   #meters { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
   .meter { background:#1c1c2e; border-radius:8px; padding:10px; border:1px solid #333; text-align:center; }
   .meter-label { font-size:11px; color:#888; margin-bottom:4px; }
-  .meter-val { font-size:26px; font-weight:bold; color:#39ffa0; }
+  .meter-val { font-size:24px; font-weight:bold; color:#39ffa0; }
   .meter-val.off { color:#444; }
-
-  /* 音量條 */
   #vol-wrap { margin-bottom:10px; }
-  #vol-bar  { height:24px; background:#222; border-radius:6px; overflow:hidden; position:relative; }
+  #vol-bar { height:24px; background:#222; border-radius:6px; overflow:hidden; }
   #vol-fill { height:100%; width:0; background:linear-gradient(90deg,#3344ff,#7c6aff,#39ffa0); transition:width .04s; }
-  /* 門檻標記線 */
-  #vol-bar::after {
-    content:'▼'; position:absolute; top:-1px;
-    left:calc(0.007 * 700% );  /* VOL_THRESH * 放大係數 */
-    font-size:10px; color:#ffcc00;
-  }
   #vol-num { font-size:11px; color:#666; text-align:right; margin-top:2px; }
-
-  /* 日誌 */
-  #log {
-    background:#0a0a0a; border-radius:8px; padding:10px;
-    height:220px; overflow-y:auto; border:1px solid #333;
-    font-size:12px; line-height:1.7;
-  }
+  #log { background:#0a0a0a; border-radius:8px; padding:10px; height:220px; overflow-y:auto; border:1px solid #333; font-size:12px; line-height:1.7; }
   .log-good  { color:#39ffa0; }
-  .log-sharp { color:#ff6b35; }
-  .log-flat  { color:#5599ff; }
-  .log-info  { color:#7c6aff; }
   .log-warn  { color:#ffcc00; }
   .log-err   { color:#ff4455; }
+  .log-info  { color:#7c6aff; }
+  /* 調試用：顯示峰值 */
+  #peak-val { font-size:11px; color:#888; text-align:center; margin-bottom:6px; }
 </style>
 </head>
 <body>
 
-<h2>🔬 音準診斷工具</h2>
+<h2>🔬 音準診斷工具 v3</h2>
 
-<!-- 狀態燈 -->
 <div id="status-row">
   <div class="light" id="l-mic">🎤 麥克風</div>
   <div class="light" id="l-audio">🔊 AudioCtx</div>
@@ -89,16 +51,13 @@
   <div class="light" id="l-pitch">🎵 偵測音高</div>
 </div>
 
-<!-- 麥克風按鈕 -->
 <button class="btn btn-mic" id="mic-btn" onclick="toggleMic()">🎤 開啟麥克風</button>
 
-<!-- ★ 參照音區 ★ -->
 <div id="ref-box">
-  <h3>🎹 點擊播放參照音，跟著唱再觀察日誌</h3>
+  <h3>🎹 先點播參照音，跟著唱</h3>
   <div id="ref-notes"></div>
 </div>
 
-<!-- 儀表 -->
 <div id="meters">
   <div class="meter">
     <div class="meter-label">RMS 音量</div>
@@ -118,14 +77,15 @@
   </div>
 </div>
 
-<!-- 音量條 -->
+<!-- 峰值監控（診斷用） -->
+<div id="peak-val">自相關峰值: — （需超過動態門檻才辨識）</div>
+
 <div id="vol-wrap">
   <div id="vol-bar"><div id="vol-fill"></div></div>
-  <div id="vol-num">▲ 黃色箭頭 = 門檻線，音量條需超過它才會偵測</div>
+  <div id="vol-num">音量 0%</div>
 </div>
 
-<!-- 日誌 -->
-<div id="log"><span class="log-info">說明：先點上方音符聽參照音，再開麥克風跟著唱。</span></div>
+<div id="log"><span class="log-info">說明：先點參照音聽音高，再開麥克風跟著唱。</span></div>
 <button class="btn btn-sm" onclick="clearLog()">🗑 清除日誌</button>
 
 <script>
@@ -137,62 +97,42 @@ function midiToName(m) { return NOTE_NAMES[((m%12)+12)%12]+(Math.floor(m/12)-1);
 const VOL_THRESH = 0.007;
 
 // ============================================================
-// 參照音按鈕：涵蓋男聲到女聲常用音
+// 參照音按鈕
 // ============================================================
 const REF_NOTES = [
-  {midi:48, label:'C3', hint:'男低'},
-  {midi:52, label:'E3', hint:'男低'},
-  {midi:55, label:'G3', hint:'男中'},
-  {midi:57, label:'A3', hint:'男中'},
-  {midi:60, label:'C4', hint:'中央C'},
-  {midi:62, label:'D4', hint:''},
-  {midi:64, label:'E4', hint:''},
-  {midi:65, label:'F4', hint:''},
-  {midi:67, label:'G4', hint:''},
-  {midi:69, label:'A4', hint:'440Hz'},
-  {midi:71, label:'B4', hint:''},
-  {midi:72, label:'C5', hint:'女聲'},
+  {midi:48,label:'C3',hint:'男低'},{midi:52,label:'E3',hint:'男低'},
+  {midi:55,label:'G3',hint:'男中'},{midi:57,label:'A3',hint:'男中'},
+  {midi:60,label:'C4',hint:'中央C'},{midi:62,label:'D4',hint:''},
+  {midi:64,label:'E4',hint:''},{midi:65,label:'F4',hint:''},
+  {midi:67,label:'G4',hint:''},{midi:69,label:'A4',hint:'440Hz'},
+  {midi:71,label:'B4',hint:''},{midi:72,label:'C5',hint:'女聲'},
 ];
-
 let playingBtn = null;
-
 function buildRefNotes() {
   const wrap = document.getElementById('ref-notes');
   REF_NOTES.forEach(n => {
     const btn = document.createElement('button');
     btn.className = 'note-btn';
-    btn.innerHTML = n.label + (n.hint ? `<small>${n.hint}</small>` : '<small>&nbsp;</small>');
-    btn.addEventListener('click', () => playRef(n.midi, btn));
-    // 長按重複播放
+    btn.innerHTML = n.label + (n.hint?`<small>${n.hint}</small>`:'<small>&nbsp;</small>');
+    btn.addEventListener('click', () => {
+      if (playingBtn) playingBtn.classList.remove('playing');
+      btn.classList.add('playing'); playingBtn = btn;
+      setTimeout(()=>btn.classList.remove('playing'), 1600);
+      const freq = midiToFreq(n.midi);
+      log(`▶ 參照音 ${n.label}（${freq.toFixed(1)} Hz）— 跟著唱`, 'log-info');
+      try {
+        const ac=new(window.AudioContext||window.webkitAudioContext)();
+        const o=ac.createOscillator(), g=ac.createGain();
+        o.type='sine'; o.frequency.value=freq;
+        g.gain.setValueAtTime(.4,ac.currentTime);
+        g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+1.5);
+        o.connect(g); g.connect(ac.destination);
+        o.start(); o.stop(ac.currentTime+1.55);
+        o.onended=()=>ac.close();
+      } catch(e){ log('播音失敗:'+e.message,'log-err'); }
+    });
     wrap.appendChild(btn);
   });
-}
-
-function playRef(midi, btn) {
-  const freq = midiToFreq(midi);
-  // 視覺反饋
-  if (playingBtn) playingBtn.classList.remove('playing');
-  btn.classList.add('playing');
-  playingBtn = btn;
-  setTimeout(() => btn.classList.remove('playing'), 1600);
-
-  log(`▶ 播放參照音 ${midiToName(midi)}（${freq.toFixed(1)} Hz）— 跟著唱這個音`, 'log-info');
-
-  // 播放 1.5 秒正弦波
-  try {
-    const ac = new(window.AudioContext||window.webkitAudioContext)();
-    const o  = ac.createOscillator();
-    const g  = ac.createGain();
-    o.type = 'sine';
-    o.frequency.value = freq;
-    g.gain.setValueAtTime(0.4, ac.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 1.5);
-    o.connect(g); g.connect(ac.destination);
-    o.start(); o.stop(ac.currentTime + 1.55);
-    o.onended = () => ac.close();
-  } catch(e) {
-    log('播音失敗: '+e.message, 'log-err');
-  }
 }
 
 // ============================================================
@@ -201,157 +141,170 @@ function playRef(midi, btn) {
 let audioCtx=null, analyser=null, micStream=null, micActive=false;
 let detectTimer=null, frameCount=0, lastLogFrame=0, silenceStreak=0;
 
-function setLight(id, state) {
-  const el = document.getElementById(id);
-  el.className = 'light' + (state ? ' '+state : '');
-}
-
-function log(msg, cls='') {
-  const div = document.getElementById('log');
-  const line = document.createElement('div');
-  line.className = cls;
-  const now = new Date();
-  const ts = now.getSeconds().toString().padStart(2,'0')
-           + '.' + now.getMilliseconds().toString().padStart(3,'0');
-  line.textContent = `[${ts}] ${msg}`;
+function setLight(id,s){ document.getElementById(id).className='light'+(s?' '+s:''); }
+function log(msg,cls=''){
+  const div=document.getElementById('log');
+  const line=document.createElement('div');
+  line.className=cls;
+  const now=new Date();
+  const ts=now.getSeconds().toString().padStart(2,'0')+'.'+now.getMilliseconds().toString().padStart(3,'0');
+  line.textContent=`[${ts}] ${msg}`;
   div.appendChild(line);
-  while (div.children.length > 120) div.removeChild(div.firstChild);
-  div.scrollTop = div.scrollHeight;
+  while(div.children.length>120) div.removeChild(div.firstChild);
+  div.scrollTop=div.scrollHeight;
 }
-function clearLog() { document.getElementById('log').innerHTML = ''; }
+function clearLog(){ document.getElementById('log').innerHTML=''; }
 
-async function toggleMic() { micActive ? stopMic() : await startMic(); }
+async function toggleMic(){ micActive?stopMic():await startMic(); }
 
-async function startMic() {
-  log('嘗試取得麥克風授權...', 'log-info');
+async function startMic(){
+  log('取得麥克風授權...','log-info');
   try {
-    micStream = await navigator.mediaDevices.getUserMedia({
-      audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+    micStream=await navigator.mediaDevices.getUserMedia({
+      audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}
     });
-    log('✅ 麥克風授權成功', 'log-info');
+    log('✅ 麥克風授權成功','log-info');
     setLight('l-mic','on');
 
-    audioCtx = new(window.AudioContext||window.webkitAudioContext)();
-    if (audioCtx.state==='suspended') await audioCtx.resume();
-    log(`AudioContext OK — 取樣率: ${audioCtx.sampleRate} Hz`, 'log-info');
-    document.getElementById('m-sr').textContent = audioCtx.sampleRate;
-    document.getElementById('m-sr').className = 'meter-val';
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') await audioCtx.resume();
+    log(`AudioContext OK — 取樣率: ${audioCtx.sampleRate} Hz`,'log-info');
+    document.getElementById('m-sr').textContent=audioCtx.sampleRate;
+    document.getElementById('m-sr').className='meter-val';
     setLight('l-audio','on');
 
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 2048;
-    analyser.smoothingTimeConstant = 0;
+    analyser=audioCtx.createAnalyser();
+    analyser.fftSize=2048;
+    // 修正1：改回適度平滑，讓波形更乾淨，自相關更容易找到峰值
+    analyser.smoothingTimeConstant=0.3;
     audioCtx.createMediaStreamSource(micStream).connect(analyser);
-    log('Analyser 連接完成，開始偵測...', 'log-info');
+    log('Analyser 連接完成，開始偵測...','log-info');
 
-    micActive = true;
-    document.getElementById('mic-btn').textContent = '⏹ 停止麥克風';
-    document.getElementById('mic-btn').className = 'btn btn-stop';
-
-    detectTimer = setInterval(detectAndLog, 25);
-  } catch(e) {
-    log('❌ ' + e.name + ': ' + e.message, 'log-err');
+    micActive=true;
+    document.getElementById('mic-btn').textContent='⏹ 停止麥克風';
+    document.getElementById('mic-btn').className='btn btn-stop';
+    detectTimer=setInterval(detectAndLog, 25);
+  } catch(e){
+    log('❌ '+e.name+': '+e.message,'log-err');
     setLight('l-mic','err');
   }
 }
 
-function stopMic() {
-  clearInterval(detectTimer);
-  micActive = false;
-  if (micStream) { micStream.getTracks().forEach(t=>t.stop()); micStream=null; }
-  if (audioCtx)  { audioCtx.close(); audioCtx=null; }
-  analyser = null;
-  document.getElementById('mic-btn').textContent = '🎤 開啟麥克風';
-  document.getElementById('mic-btn').className = 'btn btn-mic';
+function stopMic(){
+  clearInterval(detectTimer); micActive=false;
+  if(micStream){micStream.getTracks().forEach(t=>t.stop());micStream=null;}
+  if(audioCtx){audioCtx.close();audioCtx=null;}
+  analyser=null;
+  document.getElementById('mic-btn').textContent='🎤 開啟麥克風';
+  document.getElementById('mic-btn').className='btn btn-mic';
   ['l-mic','l-audio','l-sound','l-pitch'].forEach(id=>setLight(id,''));
-  document.getElementById('vol-fill').style.width = '0%';
-  log('麥克風已停止', 'log-warn');
+  document.getElementById('vol-fill').style.width='0%';
+  log('麥克風已停止','log-warn');
 }
 
-function detectAndLog() {
-  if (!micActive || !analyser) return;
+function detectAndLog(){
+  if(!micActive||!analyser) return;
   frameCount++;
 
-  const buf = new Float32Array(analyser.fftSize);
+  const buf=new Float32Array(analyser.fftSize);
   analyser.getFloatTimeDomainData(buf);
 
-  // RMS
   let ss=0; for(let i=0;i<buf.length;i++) ss+=buf[i]*buf[i];
-  const rms = Math.sqrt(ss/buf.length);
+  const rms=Math.sqrt(ss/buf.length);
 
-  // 音量 UI（每幀更新）
-  const pct = Math.min(100, rms*700);
-  document.getElementById('vol-fill').style.width = pct+'%';
-  document.getElementById('m-rms').textContent = rms.toFixed(4);
-  document.getElementById('m-rms').className = 'meter-val'+(rms>=VOL_THRESH?'':' off');
+  const pct=Math.min(100,rms*700);
+  document.getElementById('vol-fill').style.width=pct+'%';
+  document.getElementById('m-rms').textContent=rms.toFixed(4);
+  document.getElementById('m-rms').className='meter-val'+(rms>=VOL_THRESH?'':' off');
 
-  const hasSound = rms >= VOL_THRESH;
-  setLight('l-sound', hasSound?'on':'');
+  const hasSound=rms>=VOL_THRESH;
+  setLight('l-sound',hasSound?'on':'');
 
-  // 每 8 幀（約 200ms）才寫一條日誌，不然太多
-  if (frameCount - lastLogFrame < 8) return;
-  lastLogFrame = frameCount;
+  if(frameCount-lastLogFrame<8) return;
+  lastLogFrame=frameCount;
 
-  if (!hasSound) {
+  if(!hasSound){
     silenceStreak++;
-    // 每 25 次靜音才記一行，避免洗版
-    if (silenceStreak % 25 === 1) {
-      log(`靜音 RMS=${rms.toFixed(5)}（門檻=${VOL_THRESH}，需更大聲）`, 'log-warn');
-    }
-    document.getElementById('m-freq').textContent = '—';
-    document.getElementById('m-freq').className = 'meter-val off';
-    document.getElementById('m-note').textContent = '—';
-    document.getElementById('m-note').className = 'meter-val off';
+    if(silenceStreak%25===1) log(`靜音 RMS=${rms.toFixed(5)}`,'log-warn');
+    document.getElementById('m-freq').textContent='—';
+    document.getElementById('m-freq').className='meter-val off';
+    document.getElementById('m-note').textContent='—';
+    document.getElementById('m-note').className='meter-val off';
+    document.getElementById('peak-val').textContent='自相關峰值: — （靜音中）';
     return;
   }
-  silenceStreak = 0;
+  silenceStreak=0;
 
-  const freq = autoCorrelate(buf, audioCtx.sampleRate);
+  // 修正2：autoCorrelate 現在回傳 {freq, peak} 方便診斷
+  const result=autoCorrelate(buf, audioCtx.sampleRate);
+  document.getElementById('peak-val').textContent=
+    `自相關峰值: ${result.peak.toFixed(5)}（門檻: ${result.threshold.toFixed(5)}）`;
 
-  if (!freq) {
-    log(`有聲但無法辨識音高 RMS=${rms.toFixed(4)} — 可能是子音/噪音`, 'log-warn');
+  if(!result.freq){
+    log(`有聲無音高 RMS=${rms.toFixed(4)} 峰值=${result.peak.toFixed(5)} 門檻=${result.threshold.toFixed(5)}`,'log-warn');
     setLight('l-pitch','');
     return;
   }
 
   setLight('l-pitch','on');
-  const mf     = freqToMidiF(freq);
-  const nm     = midiToName(Math.round(mf));
-  const cents  = Math.round((mf - Math.round(mf))*100);
-  const cStr   = (cents>=0?'+':'')+cents+'¢';
+  const mf=freqToMidiF(result.freq);
+  const nm=midiToName(Math.round(mf));
+  const cents=Math.round((mf-Math.round(mf))*100);
+  const cStr=(cents>=0?'+':'')+cents+'¢';
 
-  document.getElementById('m-freq').textContent = freq.toFixed(1)+' Hz';
-  document.getElementById('m-freq').className = 'meter-val';
-  document.getElementById('m-note').textContent = nm;
-  document.getElementById('m-note').className = 'meter-val';
+  document.getElementById('m-freq').textContent=result.freq.toFixed(1)+' Hz';
+  document.getElementById('m-freq').className='meter-val';
+  document.getElementById('m-note').textContent=nm;
+  document.getElementById('m-note').className='meter-val';
 
-  log(`🎵 ${nm} ${cStr}　${freq.toFixed(1)} Hz　音量=${rms.toFixed(4)}`, 'log-good');
+  log(`🎵 ${nm} ${cStr}　${result.freq.toFixed(1)} Hz　RMS=${rms.toFixed(4)}　峰值=${result.peak.toFixed(4)}`,'log-good');
 }
 
-// 自相關音高偵測
-function autoCorrelate(buf, SR) {
-  const N=buf.length, minLag=Math.floor(SR/1200), maxLag=Math.floor(SR/60);
-  let mean=0; for(let i=0;i<N;i++) mean+=buf[i]; mean/=N;
+// ============================================================
+// 修正3：改良自相關，使用動態門檻（相對於 r[0]），不用固定 0.008
+// ============================================================
+function autoCorrelate(buf, SR){
+  const N=buf.length;
+  const minLag=Math.floor(SR/1200);  // 1200 Hz 上限
+  const maxLag=Math.floor(SR/60);    // 60 Hz 下限
+
+  // 去直流
+  let mean=0;
+  for(let i=0;i<N;i++) mean+=buf[i];
+  mean/=N;
+
+  // 計算自相關，同時記錄 r[0]（總能量，用來做正規化）
   const r=new Float32Array(maxLag+1);
-  for(let lag=minLag;lag<=maxLag;lag++){
-    let s=0,n=N-lag;
+  for(let lag=0;lag<=maxLag;lag++){
+    let s=0, n=N-lag;
     for(let i=0;i<n;i++) s+=(buf[i]-mean)*(buf[i+lag]-mean);
     r[lag]=s/n;
   }
-  let crossed=false,bestLag=-1,bestVal=-Infinity;
+
+  // 修正：動態門檻 = r[0] 的 8%（而非固定 0.008）
+  // 這樣不管音量大小，門檻都能自動適應
+  const dynThreshold = r[0] * 0.08;
+
+  // 找過零後第一個超過動態門檻的局部極大值
+  let crossed=false, bestLag=-1, bestVal=-Infinity;
   for(let lag=minLag;lag<maxLag-1;lag++){
-    if(!crossed){if(r[lag]<0)crossed=true;continue;}
-    if(r[lag]>r[lag-1]&&r[lag]>=r[lag+1]){
-      if(r[lag]>bestVal){bestVal=r[lag];bestLag=lag;}
+    if(!crossed){ if(r[lag]<0) crossed=true; continue; }
+    if(r[lag]>r[lag-1] && r[lag]>=r[lag+1]){
+      if(r[lag]>bestVal){ bestVal=r[lag]; bestLag=lag; }
       break;
     }
   }
-  if(bestLag===-1||bestVal<0.008) return null;
-  const p=r[bestLag-1],c=r[bestLag],nx=r[bestLag+1]||0,d=p-2*c+nx;
-  return SR/(d!==0?bestLag+.5*(p-nx)/d:bestLag);
+
+  if(bestLag===-1 || bestVal<dynThreshold){
+    return { freq:null, peak: bestVal<0?0:bestVal, threshold: dynThreshold };
+  }
+
+  // 二次插值精化
+  const p=r[bestLag-1], c=r[bestLag], nx=r[bestLag+1]||0, d=p-2*c+nx;
+  const fine = d!==0 ? bestLag+.5*(p-nx)/d : bestLag;
+  return { freq: SR/fine, peak: bestVal, threshold: dynThreshold };
 }
 
-// 初始化
 buildRefNotes();
 </script>
 </body>
